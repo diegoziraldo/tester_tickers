@@ -230,6 +230,94 @@ def backtest_pro(df, rr=3, riesgo_por_trade=0.01):
         "capital_final": round(capital, 2)
     }
 
+# ==============================
+# 🔥 DECISION INTELIGENTE FINAL
+# ==============================
+def decision_inteligente(d, precio):
+    score = 0
+    razones = []
+
+    # 📈 TENDENCIA (EMAs)
+    if d["EMA20"] > d["EMA50"] > d["EMA200"]:
+        score += 2
+        razones.append("Tendencia alcista fuerte")
+    elif d["EMA20"] < d["EMA50"] < d["EMA200"]:
+        score -= 2
+        razones.append("Tendencia bajista fuerte")
+
+    # ⚡ MOMENTUM (MACD)
+    if "MACD" in d and "MACD_signal" in d:
+        if d["MACD"] > d["MACD_signal"]:
+            score += 2
+            razones.append("MACD alcista")
+        elif d["MACD"] < d["MACD_signal"]:
+            score -= 2
+            razones.append("MACD bajista")
+
+    # 💪 FUERZA (ADX)
+    if d["ADX"] > 25:
+        score += 1
+        razones.append("Tendencia con fuerza")
+    else:
+        score -= 1
+        razones.append("Mercado lateral")
+
+    # 🎯 RSI (TIMING)
+    if d["RSI"] < 30:
+        score += 2
+        razones.append("Sobreventa (rebote)")
+    elif d["RSI"] > 70:
+        score -= 2
+        razones.append("Sobrecompra (riesgo)")
+
+    # 📊 VOLUMEN
+    if d["Volume"] > d["vol_mean"]:
+        score += 1
+        razones.append("Volumen acompaña")
+    else:
+        score -= 1
+        razones.append("Volumen débil")
+
+    # 🧱 SOPORTE / RESISTENCIA
+    if precio <= d["soporte"] * 1.02:
+        score += 1
+        razones.append("Zona de soporte")
+    elif precio >= d["resistencia"] * 0.98:
+        score -= 1
+        razones.append("Zona de resistencia")
+
+    # 🕯️ VELA
+    if d["Close"] > d["Open"]:
+        score += 1
+        razones.append("Vela alcista")
+    else:
+        score -= 1
+        razones.append("Vela bajista")
+
+    # ==========================
+    # 🎯 DECISION FINAL
+    # ==========================
+    if score >= 5:
+        decision = "🟢 COMPRAR FUERTE"
+    elif score >= 2:
+        decision = "🟢 COMPRAR"
+    elif score >= -1:
+        decision = "🟡 ESPERAR"
+    else:
+        decision = "🔴 VENDER"
+
+    txt = "\n\n--- 🤖 DECISION INTELIGENTE ---\n"
+    txt += f"Score: {score}\n"
+    txt += f"Acción: {decision}\n"
+    txt += "Factores:\n"
+
+    for r in razones:
+        txt += f"- {r}\n"
+
+    return txt
+
+
+
 
 # ==============================
 # ANALISIS + EXPLICACION
@@ -323,8 +411,9 @@ def analizar_logica(df, d, s, m, precio):
     for r in razones:
         txt += f"- {r}\n"
 
+    txt += decision_inteligente(d, precio)
+    
     return txt
-
 
 # ==============================
 # MAIN
