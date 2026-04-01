@@ -77,6 +77,31 @@ def obtener_fundamentales(ticker):
 def evaluar_indicadores_pro(d, precio):
     txt = "\n\n--- 🧠 EVALUACION DE INDICADORES ---\n"
 
+    # ==============================
+    # 🔥 DETALLE DE EMAs
+    # ==============================
+    txt += "\n--- 📊 DETALLE DE EMAs ---\n"
+
+    txt += f"EMA20: {d['EMA20']:.2f} → "
+    if d["EMA20"] > precio:
+        txt += "👎 Por encima del precio\n"
+    else:
+        txt += "👍 Por debajo del precio\n"
+
+    txt += f"EMA50: {d['EMA50']:.2f} → "
+    if d["EMA50"] > precio:
+        txt += "👎 Por encima del precio\n"
+    else:
+        txt += "👍 Por debajo del precio\n"
+
+    txt += f"EMA200: {d['EMA200']:.2f} → "
+    if d["EMA200"] > precio:
+        txt += "👎 Por encima del precio\n"
+    else:
+        txt += "👍 Por debajo del precio\n"
+    
+    txt += "\n\n"
+
     # EMA
     if d["EMA20"] > d["EMA50"] > d["EMA200"]:
         txt += "✅ EMAs alineadas → tendencia sana\n"
