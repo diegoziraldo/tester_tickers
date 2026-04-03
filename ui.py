@@ -1,11 +1,11 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
+from agregar import crear_tab_alertas  # 👈 IMPORTANTE (tu archivo real)
 from config import ultimo_ticker, ultimo_data
 from sheets import cargar_estrategias_desde_sheets
 from analysis import analizar_ticker
 from checklist import actualizar_checklist
-
 
 
 def iniciar_app():
@@ -100,7 +100,6 @@ def iniciar_app():
 
         analizar(force=True)
 
-
     # ==============================
     # UI
     # ==============================
@@ -182,6 +181,12 @@ def iniciar_app():
         font=("Arial", 12, "bold")
     ).pack(anchor="w", padx=10)
 
+    # ==============================
+    # TAB ALERTAS (TU SISTEMA REAL)
+    # ==============================
+
+    frame_alertas = crear_tab_alertas(notebook)
+    notebook.add(frame_alertas, text="Alertas")
 
     # ==============================
     # INIT
