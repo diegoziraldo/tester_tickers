@@ -44,6 +44,21 @@ def crear_tab_alertas(parent):
         messagebox.showerror("Error", "URL no definida en datos.txt")
 
     # ==============================
+    # FORMATO FECHA
+    # ==============================
+
+    def formatear_fecha(dt=None):
+        if dt is None:
+            dt = datetime.now()
+        return dt.strftime("%d/%m/%Y")
+
+    def normalizar_fecha(fecha):
+        try:
+            return datetime.fromisoformat(fecha).strftime("%d/%m/%Y")
+        except:
+            return fecha
+
+    # ==============================
     # FUNCIONES
     # ==============================
 
@@ -55,8 +70,19 @@ def crear_tab_alertas(parent):
 
     def cargar_listado():
         try:
-            r = requests.post(URL, json={"action": "read"}, timeout=10)
+            r = requests.post(URL, json={"action": "read_para_app"}, timeout=10)
+
             data = r.json()
+            print(data)  # 👈 ACÁ
+
+            if not isinstance(data, list):
+                messagebox.showerror("Error", f"Respuesta inválida: {data}")
+                return
+
+            # 🔴 VALIDACIÓN AGREGADA (ÚNICO CAMBIO)
+            if not isinstance(data, list):
+                messagebox.showerror("Error", f"Respuesta inválida: {data}")
+                return
 
             for item in tree.get_children():
                 tree.delete(item)
@@ -64,13 +90,12 @@ def crear_tab_alertas(parent):
             for row in data:
                 row_id = row.get("id")
 
-                # 🔥 FIX ERROR: evitar None o duplicados
                 if row_id is None:
                     row_id = str(uuid.uuid4())
 
                 tree.insert("", "end", iid=str(row_id), values=(
                     row.get("ticker"),
-                    row.get("fecha"),
+                    normalizar_fecha(row.get("fecha")),
                     row.get("tipo"),
                     row.get("monto"),
                     row.get("entrada"),
@@ -84,12 +109,10 @@ def crear_tab_alertas(parent):
             messagebox.showerror("Error", str(e))
 
     def enviar_datos():
-        if not entry_ticker.get() or not entry_fecha.get() or not entry_tipo.get() or not entry_monto.get():
-            messagebox.showerror("Error", "Campos obligatorios faltantes")
-            return
 
         try:
-            monto = float(entry_monto.get())
+            monto = entry_monto.get()
+            monto = float(monto) if monto else None
         except:
             messagebox.showerror("Error", "Monto inválido")
             return
@@ -165,7 +188,7 @@ def crear_tab_alertas(parent):
         entry_stop.delete(0, tk.END)
         entry_nota_entrada.delete(0, tk.END)
         entry_nota_salida.delete(0, tk.END)
-        entry_fecha.insert(0, datetime.now().strftime("%Y-%m-%d"))
+        entry_fecha.insert(0, formatear_fecha())
 
     # ==============================
     # UI
@@ -178,7 +201,7 @@ def crear_tab_alertas(parent):
     ttk.Label(frame, text="Fecha").grid(row=1, column=0, sticky="w")
     entry_fecha = ttk.Entry(frame)
     entry_fecha.grid(row=1, column=1, sticky="ew")
-    entry_fecha.insert(0, datetime.now().strftime("%Y-%m-%d"))
+    entry_fecha.insert(0, formatear_fecha())
 
     ttk.Label(frame, text="Tipo").grid(row=2, column=0, sticky="w")
     entry_tipo = ttk.Entry(frame)
@@ -208,7 +231,6 @@ def crear_tab_alertas(parent):
     entry_nota_salida = ttk.Entry(frame)
     entry_nota_salida.grid(row=8, column=1, sticky="ew")
 
-    # BOTONES
     btn = ttk.Frame(frame)
     btn.grid(row=9, column=0, columnspan=2, pady=10)
 
@@ -217,23 +239,33 @@ def crear_tab_alertas(parent):
     ttk.Button(btn, text="Borrar", command=borrar_dato).grid(row=0, column=2)
     ttk.Button(btn, text="Actualizar", command=cargar_listado).grid(row=0, column=3)
 
-    # ==============================
-    # TABLA
-    # ==============================
-
     columnas = (
         "ticker", "fecha", "tipo", "monto",
         "entrada", "target", "stop",
         "nota_entrada", "nota_salida"
     )
 
-    tree = ttk.Treeview(frame, columns=columnas, show="headings", height=10)
+    tree_frame = ttk.Frame(frame)
+    tree_frame.grid(row=10, column=0, columnspan=2, sticky="nsew")
+
+    scroll_y = ttk.Scrollbar(tree_frame, orient="vertical")
+    scroll_y.pack(side="right", fill="y")
+
+    tree = ttk.Treeview(
+        tree_frame,
+        columns=columnas,
+        show="headings",
+        height=10,
+        yscrollcommand=scroll_y.set
+    )
+
+    scroll_y.config(command=tree.yview)
 
     for c in columnas:
         tree.heading(c, text=c)
         tree.column(c, width=110)
 
-    tree.grid(row=10, column=0, columnspan=2, sticky="nsew", pady=10)
+    tree.pack(fill="both", expand=True)
 
     frame.rowconfigure(10, weight=1)
     frame.columnconfigure(1, weight=1)
