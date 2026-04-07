@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from agregar import crear_tab_alertas  # 👈 IMPORTANTE (tu archivo real)
+from ui.alertas.tab_alertas import crear_tab_alertas # 👈 IMPORTANTE (tu archivo real)
 from config import ultimo_ticker, ultimo_data
 from sheets import cargar_estrategias_desde_sheets
 from analysis import analizar_ticker
