@@ -72,6 +72,7 @@ def cargar_listado(tree):
                 row.get("tipo"),
                 row.get("monto"),
                 row.get("entrada"),
+                row.get("salida"),
                 row.get("target"),
                 row.get("stop"),
                 row.get("estado"),

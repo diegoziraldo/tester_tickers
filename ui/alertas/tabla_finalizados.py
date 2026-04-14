@@ -1,9 +1,11 @@
 from tkinter import ttk
 
-def crear_tabla(frame, row):
+def trades_finish(frame, row):
 
     columnas = (
-        "Ticker", "Tipo", "Nota entrada"
+        "Ticker", "Fecha de entrada", "Fecha de salida", "Tipo",
+        "Entrada", "Stop loss", "Target", "Ganador",
+        "Nota entrada", "Nota salida"
     )
 
     tree_frame = ttk.Frame(frame)

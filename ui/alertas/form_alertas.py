@@ -25,4 +25,4 @@ def crear_formulario(frame):
 
     entries["fecha"].insert(0, formatear_fecha())
 
-    return entries
+    return entries, len(campos)
