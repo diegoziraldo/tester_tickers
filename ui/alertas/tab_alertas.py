@@ -6,6 +6,8 @@ from ui.alertas.tabla_ejecucion import trades_eject
 from ui.alertas.tabla_finalizados import trades_finish
 from ui.alertas.funciones import (
     cargar_listado,
+    cargar_ejecutados,
+    cargar_finalizados,
     enviar_datos,
     editar_dato,
     borrar_dato
@@ -83,6 +85,8 @@ def crear_tab_alertas(parent):
     # CARGA INICIAL
     # ==============================
     cargar_listado(tree_alertas)
+    cargar_ejecutados(tree_ejecucion)
+    cargar_finalizados(tree_finalizados)
 
     # ==============================
     # BOTONES (trabajan sobre alertas)
@@ -97,6 +101,10 @@ def crear_tab_alertas(parent):
                command=lambda: borrar_dato(tree_alertas)).grid(row=0, column=2)
 
     ttk.Button(btn, text="Actualizar",
-               command=lambda: cargar_listado(tree_alertas)).grid(row=0, column=3)
+            command=lambda: (cargar_listado(tree_alertas), 
+                            cargar_ejecutados(tree_ejecucion), 
+                            cargar_finalizados(tree_finalizados))
+                            ).grid(row=0, column=3),
+
 
     return frame

@@ -10,7 +10,7 @@ def crear_formulario(frame):
     entries = {}
 
     campos = [
-        "ticker", "fecha", "tipo", "monto",
+        "fecha", "ticker", "tipo", "monto",
         "entrada", "target", "stop", "estado",
         "nota_entrada", "nota_salida"
     ]
