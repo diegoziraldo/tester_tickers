@@ -3,7 +3,16 @@ from tkinter import ttk
 def crear_tabla(frame, row):
 
     columnas = (
-        "Ticker", "Tipo", "Nota entrada"
+        "Ticker",
+        "Tipo",
+        "Entrada",
+        "Stop",
+        "Target",
+        "Ganador",
+        "Fecha",
+        "Fecha salida",
+        "Nota entrada",
+        "Nota salida"
     )
 
     tree_frame = ttk.Frame(frame)

@@ -68,7 +68,15 @@ def cargar_listado(tree):
 
             tree.insert("", "end", iid=str(row_id), values=(
                 row.get("ticker"),
-
+                row.get("tipo"),
+                row.get("entrada"),
+                row.get("stop"),
+                row.get("target"),
+                row.get("ganador"),
+                row.get("fecha"),
+                row.get("fecha_salida"),
+                row.get("nota_entrada"),
+                row.get("nota_salida"),
             ))
 
     except Exception as e:
