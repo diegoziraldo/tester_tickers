@@ -1,201 +1,251 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import threading
 
-from ui.alertas.tab_alertas import crear_tab_alertas # 👈 IMPORTANTE (tu archivo real)
-from config import ultimo_ticker, ultimo_data
+from ui.alertas.tab_alertas import crear_tab_alertas
 from sheets import cargar_estrategias_desde_sheets
 from analysis import analizar_ticker
 from checklist import actualizar_checklist
 
 
-def iniciar_app():
+class TradingApp:
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Trading Pro")
+        self.root.geometry("900x700")
+
+        self.cargando = False
+
+        self.init_variables()
+        self.build_ui()
+        self.init_data()
 
     # ==============================
-    # ROOT
-    # ==============================
-    root = tk.Tk()
-    root.title("Trading Pro")
-    root.geometry("900x700")
-
-    # ==============================
-    # VARIABLES UI
+    # VARIABLES
     # ==============================
 
-    rsi_input = tk.StringVar(value="55")
-    adx_input = tk.StringVar(value="25")
-    stoch_input = tk.StringVar(value="80")
-    atr_input = tk.StringVar(value="1")
+    def init_variables(self):
+        self.rsi_input = tk.StringVar(value="55")
+        self.adx_input = tk.StringVar(value="25")
+        self.stoch_input = tk.StringVar(value="80")
+        self.atr_input = tk.StringVar(value="1")
 
-    vars_ui = {
-        "trend": tk.StringVar(),
-        "ema_alignment": tk.StringVar(),
-        "rsi": tk.StringVar(),
-        "macd": tk.StringVar(),
-        "stoch": tk.StringVar(),
-        "adx": tk.StringVar(),
-        "atr": tk.StringVar(),
-        "breakout": tk.StringVar(),
-        "ema20": tk.StringVar(),
-        "ema50": tk.StringVar(),
-        "close": tk.StringVar(),
-        "macd_param": tk.StringVar(),
-        "score": tk.StringVar()
-    }
+        self.vars_ui = {
+            "trend": tk.StringVar(),
+            "ema_alignment": tk.StringVar(),
+            "rsi": tk.StringVar(),
+            "macd": tk.StringVar(),
+            "stoch": tk.StringVar(),
+            "adx": tk.StringVar(),
+            "atr": tk.StringVar(),
+            "breakout": tk.StringVar(),
+            "ema20": tk.StringVar(),
+            "ema50": tk.StringVar(),
+            "close": tk.StringVar(),
+            "macd_param": tk.StringVar(),
+            "score": tk.StringVar()
+        }
 
-    inputs = {
-        "rsi": rsi_input,
-        "adx": adx_input,
-        "stoch": stoch_input,
-        "atr": atr_input
-    }
-
-    # ==============================
-    # FUNCIONES
-    # ==============================
-
-    def analizar(force=False):
-        ticker = ticker_select.get().strip().upper()
-
-        if not ticker:
-            output.delete("1.0", tk.END)
-            output.insert(tk.END, "⚠ Ingresá un ticker válido\n")
-            return
-
-        last, result = analizar_ticker(ticker)
-
-        if last is None:
-            output.delete("1.0", tk.END)
-            output.insert(tk.END, result)
-            return
-
-        output.delete("1.0", tk.END)
-        output.insert(tk.END, result)
-
-        actualizar_checklist(
-            last,
-            inputs,
-            vars_ui,
-            estrategia_select.get()
-        )
-
-    def cargar_estrategia(event=None):
-        from config import estrategias
-
-        nombre = estrategia_select.get()
-
-        if nombre in estrategias:
-            config = estrategias[nombre]
-
-            if "RSI" in config:
-                rsi_input.set(str(config["RSI"]))
-
-            if "ADX" in config:
-                adx_input.set(str(config["ADX"]))
-
-            if "STOCH" in config:
-                stoch_input.set(str(config["STOCH"]))
-
-            if "ATR" in config:
-                atr_input.set(str(config["ATR"]))
-
-        analizar(force=True)
+        self.inputs = {
+            "rsi": self.rsi_input,
+            "adx": self.adx_input,
+            "stoch": self.stoch_input,
+            "atr": self.atr_input
+        }
 
     # ==============================
     # UI
     # ==============================
 
-    top_frame = ttk.Frame(root)
-    top_frame.pack()
+    def build_ui(self):
+        self.build_top()
+        self.build_tabs()
 
-    ttk.Label(top_frame, text="Ticker").pack()
-    ticker_select = ttk.Entry(top_frame)
-    ticker_select.pack()
+    def build_top(self):
+        top_frame = ttk.Frame(self.root)
+        top_frame.pack(pady=5)
 
-    ticker_select.bind("<Return>", lambda event: analizar())
+        ttk.Label(top_frame, text="Ticker").pack()
 
-    ttk.Button(top_frame, text="Analizar", command=analizar).pack()
+        self.ticker_select = ttk.Entry(top_frame)
+        self.ticker_select.pack()
+        self.ticker_select.bind("<Return>", lambda e: self.analizar())
 
-    notebook = ttk.Notebook(root)
-    notebook.pack(expand=True, fill="both")
+        ttk.Button(top_frame, text="Analizar", command=self.analizar).pack(pady=5)
 
-    # ==============================
-    # TAB ANALIZADOR
-    # ==============================
+    def build_tabs(self):
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(expand=True, fill="both")
 
-    frame_analizar = ttk.Frame(notebook)
-    notebook.add(frame_analizar, text="Analizador")
+        self.build_tab_analizador(notebook)
+        self.build_tab_checklist(notebook)
+        self.build_tab_alertas(notebook)
 
-    output = tk.Text(frame_analizar)
-    output.pack(expand=True, fill="both")
+    def build_tab_analizador(self, notebook):
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Analizador")
 
-    # ==============================
-    # TAB CHECKLIST
-    # ==============================
+        self.output = tk.Text(frame)
+        self.output.pack(expand=True, fill="both")
 
-    frame_checklist = ttk.Frame(notebook)
-    notebook.add(frame_checklist, text="Checklist PRO")
+    def build_tab_checklist(self, notebook):
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Checklist PRO")
 
-    ttk.Label(frame_checklist, text="Estrategia").pack(anchor="w", padx=10)
+        ttk.Label(frame, text="Estrategia").pack(anchor="w", padx=10)
 
-    estrategia_select = ttk.Combobox(frame_checklist)
-    estrategia_select.pack(padx=10, pady=5)
-    estrategia_select.bind("<<ComboboxSelected>>", cargar_estrategia)
+        self.estrategia_select = ttk.Combobox(frame)
+        self.estrategia_select.pack(padx=10, pady=5)
+        self.estrategia_select.bind("<<ComboboxSelected>>", self.cargar_estrategia)
 
-    ttk.Button(
-        frame_checklist,
-        text="🔄 Actualizar Estrategias",
-        command=lambda: cargar_estrategias_desde_sheets(
-            estrategia_select,
-            root,
-            cargar_estrategia
-        )
-    ).pack(pady=5)
+        ttk.Button(
+            frame,
+            text="🔄 Actualizar Estrategias",
+            command=self.actualizar_estrategias
+        ).pack(pady=5)
 
-    config_frame = ttk.LabelFrame(frame_checklist, text="Parámetros")
-    config_frame.pack(padx=10, pady=10, fill="x")
+        config_frame = ttk.LabelFrame(frame, text="Parámetros")
+        config_frame.pack(padx=10, pady=10, fill="x")
 
-    ttk.Label(config_frame, text="RSI mínimo").grid(row=0, column=0)
-    ttk.Entry(config_frame, textvariable=rsi_input, width=5).grid(row=0, column=1)
+        ttk.Label(config_frame, text="RSI mínimo").grid(row=0, column=0)
+        ttk.Entry(config_frame, textvariable=self.rsi_input, width=5).grid(row=0, column=1)
 
-    ttk.Label(config_frame, text="ADX mínimo").grid(row=1, column=0)
-    ttk.Entry(config_frame, textvariable=adx_input, width=5).grid(row=1, column=1)
+        ttk.Label(config_frame, text="ADX mínimo").grid(row=1, column=0)
+        ttk.Entry(config_frame, textvariable=self.adx_input, width=5).grid(row=1, column=1)
 
-    ttk.Label(config_frame, text="Stoch máximo").grid(row=2, column=0)
-    ttk.Entry(config_frame, textvariable=stoch_input, width=5).grid(row=2, column=1)
+        ttk.Label(config_frame, text="Stoch máximo").grid(row=2, column=0)
+        ttk.Entry(config_frame, textvariable=self.stoch_input, width=5).grid(row=2, column=1)
 
-    ttk.Label(config_frame, text="ATR % mínimo").grid(row=3, column=0)
-    ttk.Entry(config_frame, textvariable=atr_input, width=5).grid(row=3, column=1)
+        ttk.Label(config_frame, text="ATR % mínimo").grid(row=3, column=0)
+        ttk.Entry(config_frame, textvariable=self.atr_input, width=5).grid(row=3, column=1)
 
-    for key in [
-        "trend", "ema_alignment", "rsi", "macd",
-        "stoch", "adx", "atr", "breakout",
-        "ema20", "ema50", "close", "macd_param"
-    ]:
-        ttk.Label(frame_checklist, textvariable=vars_ui[key]).pack(anchor="w", padx=10)
+        for key in [
+            "trend", "ema_alignment", "rsi", "macd",
+            "stoch", "adx", "atr", "breakout",
+            "ema20", "ema50", "close", "macd_param"
+        ]:
+            ttk.Label(frame, textvariable=self.vars_ui[key]).pack(anchor="w", padx=10)
 
-    ttk.Separator(frame_checklist).pack(fill="x", pady=10)
+        ttk.Separator(frame).pack(fill="x", pady=10)
 
-    ttk.Label(
-        frame_checklist,
-        textvariable=vars_ui["score"],
-        font=("Arial", 12, "bold")
-    ).pack(anchor="w", padx=10)
+        ttk.Label(
+            frame,
+            textvariable=self.vars_ui["score"],
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w", padx=10)
 
-    # ==============================
-    # TAB ALERTAS (TU SISTEMA REAL)
-    # ==============================
-
-    frame_alertas = crear_tab_alertas(notebook)
-    notebook.add(frame_alertas, text="Alertas")
+    def build_tab_alertas(self, notebook):
+        frame_alertas = crear_tab_alertas(notebook)
+        notebook.add(frame_alertas, text="Alertas")
 
     # ==============================
-    # INIT
+    # LOGICA
     # ==============================
 
-    cargar_estrategias_desde_sheets(
-        estrategia_select,
-        root,
-        cargar_estrategia
-    )
+    def analizar(self, force=False):
+        if self.cargando:
+            return
 
+        ticker = self.ticker_select.get().strip().upper()
+
+        if not ticker:
+            self.mostrar_output("⚠ Ingresá un ticker válido\n")
+            return
+
+        self.cargando = True
+        self.set_loading(True)
+        self.mostrar_output("⏳ Analizando...\n")
+
+        def worker():
+            try:
+                last, result = analizar_ticker(ticker)
+
+                self.root.after(0, lambda: self.actualizar_resultado(last, result))
+
+            except Exception as e:
+                self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+            finally:
+                self.root.after(0, self.fin_carga)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def actualizar_resultado(self, last, result):
+        self.mostrar_output(result)
+
+        if last:
+            actualizar_checklist(
+                last,
+                self.inputs,
+                self.vars_ui,
+                self.estrategia_select.get()
+            )
+
+    def cargar_estrategia(self, event=None):
+        from config import estrategias
+
+        nombre = self.estrategia_select.get()
+
+        if nombre in estrategias:
+            config = estrategias[nombre]
+
+            if "RSI" in config:
+                self.rsi_input.set(str(config["RSI"]))
+
+            if "ADX" in config:
+                self.adx_input.set(str(config["ADX"]))
+
+            if "STOCH" in config:
+                self.stoch_input.set(str(config["STOCH"]))
+
+            if "ATR" in config:
+                self.atr_input.set(str(config["ATR"]))
+
+        self.analizar(force=True)
+
+    def actualizar_estrategias(self):
+        self.set_loading(True)
+
+        def worker():
+            try:
+                cargar_estrategias_desde_sheets(
+                    self.estrategia_select,
+                    self.root,
+                    self.cargar_estrategia
+                )
+            finally:
+                self.root.after(0, self.set_loading, False)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    # ==============================
+    # HELPERS UI
+    # ==============================
+
+    def mostrar_output(self, texto):
+        self.output.delete("1.0", tk.END)
+        self.output.insert(tk.END, texto)
+
+    def set_loading(self, estado):
+        self.root.config(cursor="watch" if estado else "")
+
+    def fin_carga(self):
+        self.cargando = False
+        self.set_loading(False)
+
+    # ==============================
+    # INIT DATA
+    # ==============================
+
+    def init_data(self):
+        self.actualizar_estrategias()
+
+
+# ==============================
+# ENTRYPOINT
+# ==============================
+
+def iniciar_app():
+    root = tk.Tk()
+    app = TradingApp(root)
     root.mainloop()

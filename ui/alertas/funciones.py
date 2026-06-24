@@ -1,5 +1,4 @@
 import requests
-import uuid
 from tkinter import messagebox
 from datetime import datetime
 import os
@@ -15,6 +14,7 @@ def obtener_ruta_config():
     else:
         base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, "../../datos.txt")
+
 
 def cargar_config():
     config = {}
@@ -32,6 +32,7 @@ def cargar_config():
 
     return config
 
+
 config = cargar_config()
 URL = config.get("URL")
 
@@ -45,11 +46,12 @@ def normalizar_fecha(fecha):
     except:
         return fecha
 
+
 def obtener_id_seleccionado(tree):
     sel = tree.selection()
     if not sel:
         return None
-    return sel[0]
+    return sel[0]   # 👈 ID real guardado en iid
 
 # ==============================
 # CRUD
@@ -64,23 +66,20 @@ def cargar_listado(tree):
             tree.delete(item)
 
         for row in data:
-            row_id = row.get("id") or str(uuid.uuid4())
-
-            tree.insert("", "end", iid=str(row_id), values=(
-                row.get("ticker"),
-                row.get("tipo"),
-                row.get("entrada"),
-                row.get("stop"),
-                row.get("target"),
-                row.get("ganador"),
-                row.get("fecha"),
-                row.get("fecha_salida"),
-                row.get("nota_entrada"),
-                row.get("nota_salida"),
-            ))
+            tree.insert(
+                "",
+                "end",
+                iid=row.get("id"),  # 👈 ID REAL
+                values=(
+                    row.get("ticker"),
+                    row.get("tipo"),
+                    row.get("nota_entrada")
+                )
+            )
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
+
 
 def cargar_ejecutados(tree):
     try:
@@ -91,15 +90,14 @@ def cargar_ejecutados(tree):
             tree.delete(item)
 
         for row in data:
-            row_id = row.get("id") or str(uuid.uuid4())
-
-            tree.insert("", "end", iid=str(row_id), values=(
+            tree.insert("", "end", values=(
+                row.get("id"),
                 row.get("ticker"),
                 normalizar_fecha(row.get("fecha")),
                 row.get("tipo"),
                 row.get("monto"),
                 row.get("entrada"),
-                row.get("salida"),
+                row.get("fecha_salida"),
                 row.get("target"),
                 row.get("stop"),
                 row.get("estado"),
@@ -109,7 +107,8 @@ def cargar_ejecutados(tree):
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
-    
+
+
 def cargar_finalizados(tree):
     try:
         r = requests.post(URL, json={"action": "read_para_app"}, timeout=10)
@@ -119,15 +118,14 @@ def cargar_finalizados(tree):
             tree.delete(item)
 
         for row in data:
-            row_id = row.get("id") or str(uuid.uuid4())
-
-            tree.insert("", "end", iid=str(row_id), values=(
+            tree.insert("", "end", values=(
+                row.get("id"),
                 row.get("ticker"),
                 normalizar_fecha(row.get("fecha")),
                 row.get("tipo"),
                 row.get("monto"),
                 row.get("entrada"),
-                row.get("salida"),
+                row.get("fecha_salida"),
                 row.get("target"),
                 row.get("stop"),
                 row.get("estado"),
@@ -138,7 +136,10 @@ def cargar_finalizados(tree):
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-        
+
+# ==============================
+# CREATE
+# ==============================
 
 def enviar_datos(entries, tree):
 
@@ -149,9 +150,20 @@ def enviar_datos(entries, tree):
         messagebox.showerror("Error", "Monto inválido")
         return
 
-    data = {k: v.get() for k, v in entries.items()}
-    data["action"] = "create"
-    data["monto"] = monto
+    data = {
+        "action": "create",
+        "fecha": entries["fecha"].get(),
+        "fecha_salida": entries.get("fecha_salida", "").get() if "fecha_salida" in entries else "",
+        "ticker": entries["ticker"].get(),
+        "tipo": entries["tipo"].get(),
+        "monto": monto,
+        "entrada": entries["entrada"].get(),
+        "target": entries["target"].get(),
+        "stop": entries["stop"].get(),
+        "estado": entries["estado"].get(),
+        "nota_entrada": entries["nota_entrada"].get(),
+        "nota_salida": entries["nota_salida"].get()
+    }
 
     try:
         requests.post(URL, json=data)
@@ -161,6 +173,10 @@ def enviar_datos(entries, tree):
         messagebox.showerror("Error", str(e))
 
 
+# ==============================
+# UPDATE
+# ==============================
+
 def editar_dato(entries, tree):
 
     id_sel = obtener_id_seleccionado(tree)
@@ -168,9 +184,21 @@ def editar_dato(entries, tree):
         messagebox.showerror("Error", "Selecciona un registro")
         return
 
-    data = {k: v.get() for k, v in entries.items()}
-    data["action"] = "update"
-    data["id"] = id_sel
+    data = {
+        "action": "update",
+        "id": id_sel,
+        "fecha": entries["fecha"].get(),
+        "fecha_salida": entries.get("fecha_salida", "").get() if "fecha_salida" in entries else "",
+        "ticker": entries["ticker"].get(),
+        "tipo": entries["tipo"].get(),
+        "monto": entries["monto"].get(),
+        "entrada": entries["entrada"].get(),
+        "target": entries["target"].get(),
+        "stop": entries["stop"].get(),
+        "estado": entries["estado"].get(),
+        "nota_entrada": entries["nota_entrada"].get(),
+        "nota_salida": entries["nota_salida"].get()
+    }
 
     try:
         requests.post(URL, json=data)
@@ -179,6 +207,10 @@ def editar_dato(entries, tree):
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
+
+# ==============================
+# DELETE
+# ==============================
 
 def borrar_dato(tree):
 

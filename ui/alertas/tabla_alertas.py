@@ -2,18 +2,7 @@ from tkinter import ttk
 
 def crear_tabla(frame, row):
 
-    columnas = (
-        "Ticker",
-        "Tipo",
-        "Entrada",
-        "Stop",
-        "Target",
-        "Ganador",
-        "Fecha",
-        "Fecha salida",
-        "Nota entrada",
-        "Nota salida"
-    )
+    columnas = ("Ticker", "Tipo", "Entrada")
 
     tree_frame = ttk.Frame(frame)
     tree_frame.grid(row=row, column=0, columnspan=2, sticky="nsew")
